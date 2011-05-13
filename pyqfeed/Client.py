@@ -13,7 +13,8 @@ class Client(asynchat.async_chat):
         self._port = port
         self._ibuffer = ""
         self._connection_started = False
-        self._receiver_thread_exit_condition = threading.Condition()
+        self._receiver_thread = None
+        self._receiver_thread_exiting = threading.Event()
         self._receiver_thread_exited = False
         self._listeners = {}
         
@@ -47,8 +48,8 @@ class Client(asynchat.async_chat):
         
     def start(self):
         self._connect_iqfeed()
-        thread = threading.Thread(None, self._start_receive_loop)
-        thread.start()
+        self._receiver_thread = threading.Thread(None, self._start_receive_loop)
+        self._receiver_thread.start()
 
     def stop(self):
         # Close the socket.
@@ -59,26 +60,23 @@ class Client(asynchat.async_chat):
             pass
         
         # Wait for the receiver thread to terminate.
-        self._receiver_thread_exit_condition.acquire()
-        if not self._receiver_thread_exited:
-            self._receiver_thread_exit_condition.wait()
-        self._receiver_thread_exit_condition.release()
-        
+        if self._receiver_thread != threading.currentThread(): self._receiver_thread_exiting.wait()
+
     def _start_receive_loop(self):
         logging.debug( "Thread starting")
         try:
             threading.currentThread().setName("IQFeedReceive")
-            asyncore.loop()
+            asyncore.loop(timeout=1)
         finally:
             logging.debug("Thread %s terminating..." % threading.currentThread().getName())
-            self._receiver_thread_exit_condition.acquire()
-            self._receiver_thread_exited = True
-            self._receiver_thread_exit_condition.notifyAll()
-            self._receiver_thread_exit_condition.release()
+            self._receiver_thread_exiting.set()
             
     def handle_connect(self):
         self._connection_started = False
         logging.info("Connected!")
+
+    def handle_close(self):
+        self.close()
 
     def collect_incoming_data(self, data):
         """Buffer incoming data"""
