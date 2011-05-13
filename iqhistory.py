@@ -3,25 +3,37 @@
 Scrape history data for a set of instruments from IQfeed.
 '''
 
-import os, sys, logging, optparse, time, datetime, types
+import os, sys, logging, optparse, time, datetime, types, gzip
 
 import pyqfeed.History
+import pyqfeed.Listener
 
-class IQTestListener(object):
-	def __init__(self, outfile=None):
-		self.outfile = outfile
-		if self.outfile:
-			self.fd = open(self.outfile, "wb")
-		else:
-			self.fd = sys.stdout
-
+class IQHistoryListener(pyqfeed.Listener.Listener):
+	def __init__(self, instrument, compression=False):
+		self.instrument = instrument
+		self.compression = compression
+		self.outfds = {}
+		
 	def on_error(self, message):
-		pass
+		logging.error(message)
 	 
-	def on_message(self, message):
-		if message.startswith('F'):
-			self.fd.write(message + "\n")
+	def on_message(self, message, **kwargs):
+		# Parse out the date
+		split_str = message.split(",")
+		date = split_str[0].partition(" ")[0]
 
+		if not self.outfds.has_key(date):
+			outfilename = "%s_%s.csv" % (date, self.instrument)
+			if self.compression:
+				self.outfds[date] = gzip.open(outfilename + ".gz", "wb")
+			else:
+				self.outfds[date] = open(outfilename, "wb")
+			
+		self.outfds[date].write(message + "\n")
+		
+	def on_data_end(self):
+		for fd in self.outfds.values():
+			fd.close()
 
 def loadSymbolsFromFile(filename):
 	base, ext = os.path.splitext(filename)
@@ -36,12 +48,15 @@ def loadSymbolsFromFile(filename):
 def scrapeHistory(host, port, symbols, start_date, num_days=1):
 	if type(start_date) == types.StringType:
 		start_date = datetime.date(int(start_date[0:4]), int(start_date[5:7]), int(start_date[8:10]))
-
-	# Set up the IQfeed client.
+	
 	client = pyqfeed.History.HistoryClient()
+	# Set up the IQfeed client.
 	for symbol in symbols:
+		listener = IQHistoryListener(symbol)
+		client.set_listener('', listener)
 		client.getHistory(symbol, start_date, num_days)
-	 
+		client.del_listener('')
+		
 def main():
 	# Vanilla command-line arg parsing. Run with -h to see pretty output"
 	parser = optparse.OptionParser()

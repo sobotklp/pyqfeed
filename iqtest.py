@@ -6,8 +6,9 @@ Simply issues a command and writes out whatever it gets back
 import os, sys, logging, optparse, time
 
 import pyqfeed.Client
+import pyqfeed.Listener
 
-class IQTestListener(object):
+class IQTestListener(pyqfeed.Listener.Listener):
     def __init__(self, outfile=None):
         self.outfile = outfile
         if self.outfile:
