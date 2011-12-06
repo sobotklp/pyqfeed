@@ -3,16 +3,17 @@
 Scrape history data for a set of instruments from IQfeed.
 '''
 
-import os, sys, logging, optparse, time, datetime, types, gzip
+import os, sys, logging, optparse, time, datetime, types, gzip, csv
 
 import pyqfeed.History
 import pyqfeed.Listener
 
 class IQHistoryListener(pyqfeed.Listener.Listener):
-	def __init__(self, instrument, compression=False):
+	def __init__(self, instrument, compression=False, date_split=False):
 		self.instrument = instrument
 		self.compression = compression
 		self.outfds = {}
+		self.date_split = date_split
 		
 	def on_error(self, message):
 		logging.error(message)
@@ -21,17 +22,23 @@ class IQHistoryListener(pyqfeed.Listener.Listener):
 		# Parse out the date
 		split_str = message.split(",")
 		date = split_str[0].partition(" ")[0]
-
-		if not self.outfds.has_key(date):
+		
+		if self.date_split:
 			outfilename = "%s_%s.csv" % (date, self.instrument)
-			if self.compression:
-				self.outfds[date] = gzip.open(outfilename + ".gz", "wb")
-			else:
-				self.outfds[date] = open(outfilename, "wb")
+		else:
+			outfilename = "%s-daily.csv" % (self.instrument)
 			
-		self.outfds[date].write(message + "\n")
+		if not self.outfds.has_key(outfilename):
+			if self.compression:
+				self.outfds[outfilename] = gzip.open(outfilename + ".gz", "wb")
+			else:
+				self.outfds[outfilename] = open(outfilename, "wb")
+			logging.info("Opening %s" % outfilename)
+			
+		self.outfds[outfilename].write(message + "\n")
 		
 	def on_data_end(self):
+		logging.info("Finished.")
 		for fd in self.outfds.values():
 			fd.close()
 
@@ -52,7 +59,7 @@ def scrapeHistory(host, port, symbols, start_date, num_days=1):
 	client = pyqfeed.History.HistoryClient()
 	# Set up the IQfeed client.
 	for symbol in symbols:
-		listener = IQHistoryListener(symbol)
+		listener = IQHistoryListener(symbol, date_split=True)
 		client.set_listener('', listener)
 		client.getHistory(symbol, start_date, num_days)
 		client.del_listener('')

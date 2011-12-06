@@ -5,7 +5,7 @@ Simply issues a command and writes out whatever it gets back
 '''
 import os, sys, logging, optparse, time
 
-import pyqfeed.Client
+import pyqfeed.OldClient
 import pyqfeed.Listener
 
 class IQTestListener(pyqfeed.Listener.Listener):
@@ -25,7 +25,7 @@ class IQTestListener(pyqfeed.Listener.Listener):
 def iqtest(host, port, command, output_filename=None):
     listener = IQTestListener(output_filename)
     
-    client = pyqfeed.Client.Client((host, port))
+    client = pyqfeed.OldClient.Client((host, port))
     client.start()
     client.set_listener('', listener)
     client.send(command)

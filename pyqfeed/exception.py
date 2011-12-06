@@ -1,0 +1,1 @@
+class PyQFeedException(Exception): pass

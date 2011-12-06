@@ -40,6 +40,7 @@ class Client(asynchat.async_chat, dispatcher.Dispatcher):
         self._receiver_thread.start()
 
     def stop(self):
+        logging.debug("Client.stop()")
         # Close the socket.
         try:
             self.close()
@@ -50,22 +51,27 @@ class Client(asynchat.async_chat, dispatcher.Dispatcher):
         # Wait for the receiver thread to terminate.
         if self._receiver_thread != threading.currentThread(): self._receiver_thread_exiting.wait()
 
+    def join(self):
+        if self._receiver_thread:
+            logging.debug("Joining %s" % self._receiver_thread.getName())
+            self._receiver_thread.join()
+        
     def _start_receive_loop(self):
-        logging.debug( "Thread starting")
+        threading.currentThread().setName("IQFeedReceive")
+        logging.debug("Thread %s starting" % threading.currentThread().getName())
         try:
             self._ibuffer = ""
-            threading.currentThread().setName("IQFeedReceive")
-            asyncore.loop(timeout=1)
+            asyncore.loop()
         finally:
             logging.debug("Thread %s terminating..." % threading.currentThread().getName())
             self._receiver_thread_exiting.set()
-            self._receiver_thread = None
             
     def handle_connect(self):
         self._connection_started = False
-        logging.info("Connected!")
+        logging.debug("Connected!")
 
     def handle_close(self):
+        logging.debug("Disconnected.")
         self.close()
 
     def collect_incoming_data(self, data):

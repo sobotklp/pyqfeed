@@ -14,6 +14,7 @@ class Dispatcher(object):
             self._listeners[name] = listener
         except:
             raise
+        
     def del_listener(self, name):
         '''
         Remove a listener of a specific name
@@ -21,3 +22,10 @@ class Dispatcher(object):
         \param name the name of the listener to remove
         '''
         del self._listeners[name]
+
+    def _dispatch_message(self, msg, *args, **kwargs):
+        for name, listener in self._listeners.items():
+            if hasattr(listener, msg):
+                method = getattr(listener, msg)
+                method.__call__(*args, **kwargs)
+ 

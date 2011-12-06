@@ -24,7 +24,7 @@ class IQTestListener(pyqfeed.Listener.Listener):
             self.fd.write(message + "\n")
 
 
-def loadSymbolsFromFile(filename):
+def loadSymbolsFromFile(filename, count=500, offset=0):
     base, ext = os.path.splitext(filename)
     symbols = []
     
@@ -32,7 +32,7 @@ def loadSymbolsFromFile(filename):
         for row in csv.reader(open(filename, "rb")):
             symbols.append( row[0] )
     
-    return symbols
+    return symbols[offset:]
 
 def scrapeData(host, port, symbols, output_filename=None):
     listener = IQTestListener(output_filename)
@@ -61,6 +61,8 @@ def main():
     parser.add_option('-p', dest="port", type="int", default=5009, help="IQFeed service port. Default=5009")
     parser.add_option('-s', dest="host", type="string", default="127.0.0.1", help="IQFeed service host. Default=localhost")
     parser.add_option('-i', dest="input_file", type="string", help="Input file")
+    parser.add_option('-n', dest="count", type="int", default=500, help="Numbe of lines to read from input")
+    parser.add_option('--off', dest="offset", type="int", default=0, help="Offset in input file to read from")
     parser.add_option('-o', dest="output_file", type="string", default=None, help="Save IQfeed output to this file")
     parser.add_option("--debug", action="store_true", dest="debug", default=False, help="Debug this script?")    
     (options, args) = parser.parse_args()
@@ -71,7 +73,7 @@ def main():
     if not options.input_file:
         parser.error("Please specify an input file with -i")
 
-    symbols = loadSymbolsFromFile(options.input_file)
+    symbols = loadSymbolsFromFile(options.input_file, options.count, options.offset)
     scrapeData(options.host, options.port, symbols, options.output_file)
     
 if __name__ == "__main__":
