@@ -1,44 +1,32 @@
 #!/usr/bin/env python
-import os, sys, re, pkg_resources
-from distutils.core import setup
+from setuptools import setup
 
-# Importing setuptools adds some features like "setup.py develop", but
-# it's optional so swallow the error if it's not there.
-try:
-    import setuptools
-except ImportError:
-    pass
-
-kwargs = {}
-
-major, minor = sys.version_info[:2]
-if major >= 3:
-    import setuptools  # setuptools is required for use_2to3
-    kwargs["use_2to3"] = True
-
-# patch distutils if it can't cope with the "classifiers" or "download_url"
-# keywords (prior to python 2.3.0).
-from distutils.dist import DistributionMetadata
-if not hasattr(DistributionMetadata, 'classifiers'):
-	DistributionMetadata.classifiers = None
-if not hasattr(DistributionMetadata, 'download_url'):
-	DistributionMetadata.download_url = None
-
-project_name = 'pyqfeed'
-from pyqfeed import version
+from pyqfeed import __version__
 
 if __name__ == "__main__":
 		setup(
-			name = project_name,
-			version = version,
+			name = 'pyqfeed',
+			version = __version__,
 			description = 'Python interface to IQFeed financial data',
 			author = 'Lewis Sobotkiewicz',
 			author_email = 'lewis.sobot@gmail.com',
 			platforms=['POSIX', 'Windows'],
-			test_suite = 'nose.collector',
-			tests_require=['nose>=1.1.2'],
-			packages=setuptools.find_packages(),
-			package_dir = {'pyqfeed' : 'pyqfeed' },
-			**kwargs
+			test_suite = 'tests',
+			packages=['pyqfeed'],
+			use_2to3 = True,
+			classifiers = [
+				'Intended Audience :: Developers',
+				'Operating System :: OS Independent',
+				'Programming Language :: Python',
+				'License :: OSI Approved :: MIT License',
+				'Programming Language :: Python :: 2.5',
+				'Programming Language :: Python :: 2.6',
+				'Programming Language :: Python :: 2.7',
+				'Programming Language :: Python :: 3.2',
+				'Programming Language :: Python :: 3.3',
+				'Programming Language :: Python :: Implementation :: PyPy',
+				'Topic :: Software Development :: Libraries',
+				'Topic :: Software Development :: Libraries :: Python Modules',
+			],
 		)
 
